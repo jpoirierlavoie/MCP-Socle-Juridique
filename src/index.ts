@@ -17,10 +17,10 @@ export {
   empreinte,
   frapperJeton,
   LONGUEUR_JETON,
+  memeSecret,
   ouvrir,
   type Porte,
   porteursPresentes,
-  safeEqual,
   secretsAdmis,
   trimTrailingSlash,
 } from "./identite/porteur";

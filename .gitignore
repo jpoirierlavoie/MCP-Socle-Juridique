@@ -15,6 +15,7 @@ worker-configuration.d.ts
 #
 # ⚠ Ce fichier a été écrit AVANT le premier `git add` du dépôt, précisément
 #   parce que `cf.token` était déjà sur le disque à côté des deux documents.
+cf.token
 *.token
 .dev.vars
 .dev.vars.*

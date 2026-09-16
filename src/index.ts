@@ -11,6 +11,20 @@
 // « article », c'est qu'on s'est trompé de dépôt.
 
 export {
+  apparie,
+  bearerOf,
+  decodeOrNull,
+  empreinte,
+  frapperJeton,
+  LONGUEUR_JETON,
+  ouvrir,
+  type Porte,
+  porteursPresentes,
+  safeEqual,
+  secretsAdmis,
+  trimTrailingSlash,
+} from "./identite/porteur";
+export {
   type Annotations,
   listToolDescriptors,
   type Registre,
@@ -34,5 +48,4 @@ export {
   resultResponse,
   type ToolResult,
 } from "./protocole/rpc";
-
 export { type JsonSchema, TYPES_CONNUS, validateArgs } from "./protocole/valide";

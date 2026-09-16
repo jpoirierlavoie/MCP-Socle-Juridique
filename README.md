@@ -30,10 +30,16 @@ de mise à jour automatique.
 |---|---|
 | `NOTE-OUVERTURE-PUBLIQUE.md` | considérations, arbitrages et réserves — **à lire en premier** |
 | `SPEC-SOCLE-COMMUN.md` | les contrats : décisions, schémas, portes de validation |
+| `FEUILLE-DE-ROUTE.md` | l'ordre des phases, leurs portes d'entrée et de sortie, et ce qui n'est pas rattrapable |
+| `PROCEDURES-MANUELLES.md` | les gestes qui exigent une clef, une interface ou une décision de production |
 | `CLAUDE.md` | consignes de travail dans ce dépôt |
 | `src/*/LISEZ-MOI.md` | ce que porte chaque répertoire, et à quelle marche |
 
 ## État
 
-Phase 1 en cours, marche 0. Le dépôt est amorcé et son outillage vérifié ; `src/` est
-encore vide. Voir `CLAUDE.md`, section « État ».
+**Phase 1, marche 1 faite.** Le socle porte `protocole/` (enveloppe JSON-RPC, validateur de
+schémas, registre d'outils, chaîne intergicielle HTTP) et `identite/` (les trois porteurs,
+la forme des refus, la fabrique de jetons). 92 tests, entièrement hors ligne.
+
+Reste en phase 1 : `legislation` hors `McpAgent`, le protocole `2026-07-28`, la sortie
+double, puis le retrait du Durable Object. Voir `FEUILLE-DE-ROUTE.md`.

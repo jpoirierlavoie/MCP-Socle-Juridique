@@ -11,6 +11,13 @@
 // « article », c'est qu'on s'est trompé de dépôt.
 
 export {
+  type Annotations,
+  listToolDescriptors,
+  type Registre,
+  type ToolDescriptor,
+  type ToolHandler,
+} from "./protocole/registre";
+export {
   err,
   errorResponse,
   INTERNAL_ERROR,

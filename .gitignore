@@ -1,0 +1,46 @@
+# Node / Worker
+node_modules/
+.wrangler/
+# généré par `wrangler types`
+worker-configuration.d.ts
+
+# ── Secrets locaux — ne JAMAIS versionner ────────────────────────────────────
+# Ce dépôt est PUBLIC. Un secret commis une fois reste dans l'historique, dans
+# les forks et dans les caches d'indexation même après suppression : la seule
+# parade utile est de ne jamais l'y mettre. Les motifs ci-dessous sont
+# délibérément plus larges que les fichiers réellement employés.
+#
+#   cf.token               jeton d'API Cloudflare
+#   .dev.vars              secrets de développement
+#
+# ⚠ Ce fichier a été écrit AVANT le premier `git add` du dépôt, précisément
+#   parce que `cf.token` était déjà sur le disque à côté des deux documents.
+*.token
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+mcp.url
+.env
+.env.*
+.secrets/
+# Filet supplémentaire : formes usuelles de matériel cryptographique.
+*.key
+*.pem
+*.p12
+*.pfx
+*.keystore
+secrets.json
+credentials.json
+
+# Configuration locale d'outils.
+#
+# ⚠ `.claude/settings.local.json` n'est exclu chez les deux connecteurs que par
+#   le fichier d'exclusion GLOBAL de la machine — une règle non versionnée, donc
+#   absente de tout autre clone. La règle est répétée ici pour que l'exclusion
+#   voyage avec le dépôt plutôt qu'avec le poste de travail.
+.claude/settings.local.json
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

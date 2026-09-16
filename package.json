@@ -1,0 +1,30 @@
+{
+  "name": "@poirierlavoie/socle-juridique",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Socle commun des connecteurs juridiques — protocole MCP, identité, gouverne, journal, sortie structurée. Dépendance de DÉVELOPPEMENT, empaquetée au déploiement : jamais une dépendance d'exécution (S2).",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./protocole/*": "./src/protocole/*.ts",
+    "./identite/*": "./src/identite/*.ts",
+    "./sortie/*": "./src/sortie/*.ts"
+  },
+  "types": "./src/index.ts",
+  "files": ["src", "LICENSE", "README.md"],
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.14",
+    "@cloudflare/vitest-pool-workers": "^0.18.7",
+    "@cloudflare/workers-types": "^4.20260701.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10"
+  }
+}

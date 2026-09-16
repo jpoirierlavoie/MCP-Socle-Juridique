@@ -1,0 +1,20 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Fins de ligne LF DANS LA COPIE DE TRAVAIL pour tout ce que Biome met en forme.
+#
+# Sans cela, sous Windows la copie de travail est en CRLF alors que Biome (et la CI,
+# qui tourne sous Linux) attendent LF : `biome check` échoue en local sur des
+# fichiers que la CI juge corrects, ou l'inverse. La divergence est permanente et se
+# rouvre à chaque `git checkout`. On la ferme ici plutôt que de la contourner fichier
+# par fichier. C'est l'invariant 14 du connecteur « Jurisprudence », repris tel quel.
+*.ts   text eol=lf
+*.mjs  text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
+*.sql  text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.toml text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf

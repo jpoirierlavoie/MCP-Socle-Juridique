@@ -58,7 +58,7 @@ un motif à retrouver, jamais un motif à inventer.
 | S12 | **Aucune retombée** sur la clef de l'exploitant. Sans clef, les outils `canlii_*` rendent `CLEF_ABSENTE`. L'exploitant est un titulaire comme les autres. | L'uniformité au sens fort, et la seule protection sûre du quota personnel. |
 | S13 | **Deux plans de journal, structurellement séparés.** `evenement_technique` porte le titulaire et aucun contenu. `forme_requete` porte une forme et aucun titulaire. Aucune table ne porte les deux. | Seule façon de servir ensemble l'exigence 1 et l'exigence 3. Invariant porté par les **types** et par un test de garde sur le schéma, jamais par la vigilance. |
 | S14 | Le plan de contenu ne conserve qu'une **forme expurgée** — citation normalisée, noms de parties remplacés par `[NOM]` — agrégée au jour et comptée. | Suffit au réglage de l'analyseur ; ne permet pas de reconstituer l'intérêt de recherche d'un confrère. |
-| S15 | Limitation en trois étages : débit à l'arête par titulaire, quotas journaliers par classe d'outil, score de comportement nocturne. **Jamais par adresse IP.** | Le client est claude.ai : l'adresse source est celle d'Anthropic. Limiter par IP punirait tout le monde et n'attribuerait rien. |
+| S15 | Limitation en trois étages : débit à l'arête par titulaire, quotas journaliers par classe d'outil, score de comportement nocturne. **Le trafic AUTHENTIFIÉ n'est jamais limité par adresse IP** ; le trafic dont l'authentification a ÉCHOUÉ l'est, et ne peut l'être autrement. | Deux problèmes distincts, longtemps confondus ici. Pour un titulaire connu, le client est claude.ai : l'adresse source est celle d'Anthropic, donc limiter par IP punirait tout le monde et n'attribuerait rien. Mais celui qui **devine** un jeton n'est pas encore un titulaire, et il appelle depuis SA propre adresse : c'est la seule chose stable qu'il présente. Voir §6.1, correctif A1. |
 | S16 | La dégradation vers `limite` est **automatique** ; `suspendu` et `revoque` sont **humaines**, motivées, notifiées, avec voie de rétablissement. | Ce sont des avocats. Une coupure opaque en cours de mandat n'est ni tenable ni défendable. |
 | S17 | Cache CanLII : **partagé** pour le répertoire des bases ; **cloisonné par titulaire et à durée bornée** pour les fiches de décision, jusqu'à détermination écrite de CanLII. | Le répertoire est de la donnée de référence qu'aucune clef ne possède ; une fiche est tirée de la collection sous la clef d'un licencié. |
 | S18 | Identifiants **frappés sous le domaine du cabinet et déréférençables**, sur le patron FRBR d'Akoma Ntoso. Aucun identifiant frappé sur la donnée d'autrui. | Aucune autorité canadienne n'a enregistré d'espace `urn:lex` ; ELI est européen. Pour la jurisprudence, les identifiants de CanLII font autorité : les reprendre tels quels. |
@@ -234,6 +234,37 @@ CREATE TABLE jeton (
 CREATE INDEX jeton_actif ON jeton(empreinte) WHERE revoque_le IS NULL;
 ```
 
+**Correctif A2 — la forme du jeton, qui n'était spécifiée nulle part.** Le schéma ci-dessus
+décrit soigneusement l'empreinte, la queue de six caractères et l'expiration, et ne dit **rien**
+de ce qui est haché. Dans une spécification publique portant sur l'authentification, « non
+spécifié » est la façon dont on se retrouve dans deux ans avec un jeton de douze caractères
+tiré de `Math.random`, sans qu'aucune revue ne l'ait décidé. La forme est donc arrêtée ici :
+
+```ts
+// identite/porteur.ts — LA seule fabrique de jetons du dispositif.
+export function frapperJeton(): string {
+  const octets = new Uint8Array(32);            // 256 bits
+  crypto.getRandomValues(octets);               // CSPRNG du runtime, jamais Math.random
+  return base64url(octets);                     // 43 caractères, sûrs en URL et en en-tête
+}
+```
+
+- **256 bits.** Le jeton voyage en clair dans une URL (S7, `?key=`) : il ne bénéficie
+  d'aucun secret d'appoint, et il est la totalité du facteur d'authentification. Avec cette
+  taille, la recherche exhaustive cesse d'être une hypothèse à défendre, ce qui est exactement
+  ce qu'on veut, l'étage de débit anonyme (A1) n'étant qu'un filet.
+- **`base64url`, sans remplissage.** Les trois porteurs de S7 sont un segment de chemin, un
+  paramètre de requête et un en-tête : l'alphabet doit traverser les trois sans encodage, sinon
+  `decodeURIComponent` et la comparaison divergent selon le porteur employé.
+- **Aucune structure, aucun préfixe parlant.** Pas de `titulaire_id` encodé, pas d'horodatage :
+  un jeton qui se lit renseigne celui qui l'intercepte, et invite à décider sur son contenu
+  plutôt que sur la table.
+- **Montré une seule fois** (§4.4), puis n'existe plus que sous forme d'empreinte. La queue de
+  six caractères sert à le reconnaître dans la console, jamais à l'identifier au contrôle.
+
+Un test de garde épingle les trois propriétés — longueur, alphabet, et le fait que
+`frapperJeton` est la seule fonction du socle qui appelle `getRandomValues` pour un jeton.
+
 ### 4.2 Résolution
 
 ```ts
@@ -271,7 +302,9 @@ pas devinable.
 3. **Pré-vol CORS.** Répondu avant l'authentification : le navigateur l'émet sans en-tête
    d'authentification, et l'exiger casserait tout client de navigateur sans rien protéger.
 4. **Débit anonyme.** Un plafond grossier avant la lecture D1, pour qu'une rafale de requêtes
-   mal authentifiées ne coûte rien. Clé : l'empreinte du jeton présenté, ou `"sans-jeton"`.
+   mal authentifiées ne coûte rien. Clé : `CF-Connecting-IP`, **jamais l'empreinte du jeton
+   présenté** — voir le correctif A1 de la §6.1, qui explique pourquoi la clé évidente ne
+   limite rien du tout.
 5. **Identité.** Résolution du porteur. Échec : `404` (S8).
 6. **Méthode — APRÈS l'identité, et c'est délibéré.** `2026-07-28` recommande `405` sur `GET`
    et `DELETE`, mais un `405` servi avant l'authentification apprend à un anonyme que le point
@@ -398,18 +431,43 @@ clé est aujourd'hui `CF-Connecting-IP`, et elle devient `titulaire_id` (S15). L
 claude.ai : l'adresse source est celle d'Anthropic, et limiter dessus punit tous les titulaires
 ensemble sans en attribuer un seul. Le commentaire de `wrangler.jsonc` change avec la clé.
 
-**Trois espaces exigent trois bindings.** Le plafond ne vit pas dans l'appel mais dans
-`ratelimits.simple.{limit,period}` : les trois lignes ci-dessous sont trois bindings distincts,
-avec trois `namespace_id`.
+**Quatre espaces exigent quatre bindings.** Le plafond ne vit pas dans l'appel mais dans
+`ratelimits.simple.{limit,period}` : les quatre lignes ci-dessous sont quatre bindings
+distincts, avec quatre `namespace_id` — et **les deux dépôts doivent cesser d'employer le même
+`namespace_id` `"1001"`**, qu'ils portent tous deux aujourd'hui.
 
 | Espace | Clé | Plafond de départ | Réponse |
 |---|---|---|---|
-| anonyme | empreinte du jeton présenté, ou `"sans-jeton"` | 20 / min | `404` |
+| anonyme | `CF-Connecting-IP` (**A1**) | 20 / min | `404` |
+| échecs cumulés | constante globale `"echecs"` (**A1**) | 300 / min | `404` |
 | titulaire | `titulaire_id` | 60 / min | `429` + `Retry-After: 60` |
 | titulaire `limite` | `titulaire_id` | 10 / min | `429` + `Retry-After: 300` |
 
 Le limiteur d'arête est approximatif et par centre de données : c'est une propriété assumée. Il
 ne sert pas à compter, il sert à ce qu'une boucle ne coûte rien.
+
+**Correctif A1 — pourquoi la clé anonyme n'est PAS l'empreinte du jeton.** La première
+rédaction fondait la clé de l'étage anonyme sur l'empreinte du jeton présenté. C'est la clé évidente, et
+elle ne limite **rien** : qui essaie un million de jetons produit un million d'empreintes
+distinctes, donc un million de compteurs à 1. Le seuil n'est jamais atteint, et chaque essai
+traverse le limiteur jusqu'à la lecture D1 — soit exactement l'inverse du but énoncé à la §4.3
+marche 4, qui est qu'une rafale mal authentifiée ne coûte rien.
+
+La clé doit être une chose que l'appelant ne peut pas faire varier à volonté. Pour un
+**titulaire**, c'est `titulaire_id` ; l'adresse serait celle d'Anthropic (S15). Pour un
+**inconnu**, c'est l'inverse : il n'a pas de `titulaire_id` — c'est précisément ce qu'il
+cherche — et il appelle de chez lui. `CF-Connecting-IP` redevient donc la bonne clé, et la
+seule, à cet étage-là et à aucun autre.
+
+Le second espace est un **filet contre la distribution** : une seule fenêtre globale comptant
+les refus, toutes adresses confondues. Il ne protège pas d'un attaquant patient ; il borne le
+coût d'une rafale répartie. Il est **grossier à dessein** — s'il se déclenche, le service refuse
+tout le monde pendant une minute, ce qui est un incident à traiter, non un régime de
+fonctionnement. Le plafond de départ (300/min) est donc très au-dessus du trafic légitime de
+refus attendu.
+
+Ces deux étages ne protègent que dans la mesure où le jeton lui-même est hors de portée : c'est
+l'objet du correctif A2 (§4.1).
 
 **Le WAF de la zone arrive avant lui.** L'invariant 9 de `legislation` consigne que le WAF
 bloque les rafales de `POST` non-navigateur sur le domaine personnalisé — c'est ce qui a forcé
@@ -951,6 +1009,9 @@ règle des deux dépôts et l'ouverture la rend plus impérative, pas moins.
 | G23 | Un `GET /mcp` sans porteur rend `404`, jamais `405` — l'oracle de la §4.3 marche 6 | 1 |
 | G24 | Une requête sans `MCP-Protocol-Version` rend `400` + `-32020`, jamais un service silencieux | 1 |
 | G25 | Toute table de contenu est horodatée **au jour** ; aucune ne descend à la seconde | 4 |
+| G32 | **Le limiteur anonyme limite vraiment** : mille jetons DISTINCTS et invalides, présentés depuis une même adresse, sont refusés avant d'atteindre D1 — la clé ne varie pas avec le jeton (A1) | 3 |
+| G33 | `frapperJeton()` rend 43 caractères `base64url`, tirés de `crypto.getRandomValues` ; aucune autre fonction du socle ne fabrique de jeton, et aucune n'emploie `Math.random` (A2) | 2 |
+| G34 | Les quatre espaces de limitation portent quatre `namespace_id` distincts, et aucun n'est partagé entre les deux dépôts | 3 |
 | G26 | Aucun littéral numérique de seuil dans `gouverne/score.ts` ni dans `wrangler.jsonc` ; `SEUILS_GOUVERNE` absent ou invalide ⇒ observation seule, aucun changement d'état, avertissement émis | 3 |
 
 ---

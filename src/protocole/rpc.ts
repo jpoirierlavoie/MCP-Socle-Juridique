@@ -123,16 +123,32 @@ export function isNotification(m: JsonRpcMessage): boolean {
 export interface ToolResult {
   content: Array<{ type: "text"; text: string }>;
   isError: boolean;
+  /**
+   * Charge utile typée, validée contre l'`outputSchema` publié de l'outil.
+   *
+   * ⚠ OPTIONNEL, ET CE N'EST PAS UN DÉTAIL. Le champ existe parce que `legislation` émet
+   *   une charge structurée sur ses dix outils depuis toujours, et que la marche 2 exige
+   *   qu'il continue à l'émettre À L'IDENTIQUE. Il n'est PAS l'arrivée de S5 : la sortie
+   *   double impose en plus un `outputSchema` publié et une enveloppe dont le champ
+   *   `gardes` est non vide par obligation de compilation. Tant que `sortie/` n'est pas
+   *   livré, ce champ ne porte que ce que l'outil y met, sans contrat.
+   *
+   *   Conséquence immédiate : `jurisprudence` ne doit RIEN y mettre. Son invariant 4
+   *   tient jusqu'à la marche 4, et deux de ses tests l'épinglent sur les sorties réelles.
+   *   Élargir le TYPE ne renverse aucune doctrine — seul le ferait un outil qui s'en sert.
+   */
+  structuredContent?: Record<string, unknown>;
 }
 
 /**
  * Sortie normale d'un outil : de la PROSE, dans la langue du destinataire.
  *
- * ⚠ CE TYPE EST APPELÉ À S'ÉLARGIR. La décision S5 du socle impose une sortie DOUBLE —
- *   prose dans `content`, plus `structuredContent` validé contre un `outputSchema` publié.
- *   Le renversement porte sur une doctrine écrite et réexaminée dans chacun des deux
- *   connecteurs ; il se fait donc par décision, pas par glissement, et il n'a pas encore
- *   eu lieu. Tant qu'il n'est pas fait, `ToolResult` reste ce qu'il était.
+ * ⚠ LA CHARGE STRUCTURÉE EST ACCEPTÉE, LA SORTIE DOUBLE N'EST PAS LIVRÉE. Le second
+ *   argument existe pour que `legislation` continue d'émettre ce qu'il émet déjà ; il
+ *   n'est pas l'arrivée de S5, qui exige en outre un `outputSchema` publié par outil et
+ *   une enveloppe dont `gardes` est non vide par obligation de compilation (marche 4).
+ *   Le renversement de doctrine porte sur des décisions écrites et réexaminées dans les
+ *   deux connecteurs : il se fera par décision, jamais par glissement.
  *
  *   L'argument POUR la prose seule n'est pas faible, et il vit là où il a été formulé :
  *   invariant 4 de `MCP-Jurisprudence-Quebec/CLAUDE.md`. Le lire avant d'y toucher. Le
@@ -143,8 +159,14 @@ export interface ToolResult {
  *   `gardes` non vide par obligation de compilation dès qu'une réserve s'applique
  *   (`sortie/gardes.ts`, marche 4).
  */
-export function ok(text: string): ToolResult {
-  return { content: [{ type: "text", text }], isError: false };
+export function ok(text: string, structured?: Record<string, unknown>): ToolResult {
+  // La clef n'apparaît QUE si une charge est fournie : sans elle, la sortie reste
+  // exactement `{ content, isError }`, ce qu'un test du socle épingle.
+  return {
+    content: [{ type: "text", text }],
+    isError: false,
+    ...(structured ? { structuredContent: structured } : {}),
+  };
 }
 
 /**

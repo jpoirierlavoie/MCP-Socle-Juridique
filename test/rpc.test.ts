@@ -102,3 +102,28 @@ describe("résultats d'outil", () => {
     expect(Object.keys(ok("t")).sort()).toEqual(["content", "isError"]);
   });
 });
+
+describe("ToolResult élargi (marche 2)", () => {
+  it("ok() SANS charge rend exactement { content, isError }", () => {
+    // La clef ne doit pas apparaître « vide » : un client qui teste sa présence ne doit
+    // pas croire à une charge structurée là où il n'y en a pas.
+    expect(Object.keys(ok("t")).sort()).toEqual(["content", "isError"]);
+    expect("structuredContent" in ok("t")).toBe(false);
+  });
+
+  it("ok() AVEC charge l'ajoute, sans toucher à la prose", () => {
+    const r = ok("prose", { count: 2 });
+    expect(r.content).toEqual([{ type: "text", text: "prose" }]);
+    expect(r.structuredContent).toEqual({ count: 2 });
+    expect(r.isError).toBe(false);
+  });
+
+  it("une charge VIDE n'est pas émise — `{}` est falsy-équivalent ici", () => {
+    // Choix délibéré : un objet vide n'apporte rien et ferait croire à un contrat.
+    expect("structuredContent" in ok("t", undefined)).toBe(false);
+  });
+
+  it("err() n'a jamais de charge structurée", () => {
+    expect("structuredContent" in err("raté")).toBe(false);
+  });
+});

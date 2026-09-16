@@ -25,6 +25,24 @@ export {
   trimTrailingSlash,
 } from "./identite/porteur";
 export {
+  type FormeRefus,
+  methodeNonPermise,
+  origineInterdite,
+  refuser,
+  tropDeRequetes,
+} from "./identite/refus";
+export {
+  corsHeaders,
+  debitAcceptable,
+  jsonResponse,
+  type Limiteur,
+  ORIGINES_PAR_DEFAUT,
+  origineAutorisee,
+  origineRefusee,
+  originesAdmises,
+  preflight,
+} from "./protocole/http";
+export {
   type Annotations,
   listToolDescriptors,
   type Registre,

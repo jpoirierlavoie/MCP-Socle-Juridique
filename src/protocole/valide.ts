@@ -28,6 +28,16 @@
 export const TYPES_CONNUS = ["object", "string", "integer", "number", "boolean", "array"] as const;
 
 export interface JsonSchema {
+  /**
+   * Dialecte du schéma. PUBLIÉ, jamais interprété ici — comme `default`.
+   *
+   * Il compte pour le CLIENT : `2026-07-28` prescrit que l'absence de ce champ vaut
+   * JSON Schema 2020-12. Un schéma engendré par une chaîne d'outils qui émet du draft-07
+   * doit donc le dire, sous peine d'être lu sous un dialecte qui n'est pas le sien. Le
+   * validateur du socle, lui, n'implémente qu'un sous-ensemble commun aux deux et n'a pas
+   * à trancher.
+   */
+  $schema?: string;
   type?: string;
   properties?: Record<string, JsonSchema>;
   required?: string[];

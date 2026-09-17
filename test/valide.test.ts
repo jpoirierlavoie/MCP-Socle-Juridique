@@ -126,3 +126,19 @@ describe("objets", () => {
     expect(validateArgs(s, { a: "x", b: 2 })).toHaveLength(3);
   });
 });
+
+describe("$schema", () => {
+  it("est accepté par le type, et IGNORÉ par la validation", () => {
+    // Publié pour le client — `2026-07-28` lit l'absence de ce champ comme « 2020-12 » —
+    // mais le validateur n'implémente qu'un sous-ensemble commun aux dialectes : il n'a
+    // pas à trancher, et ne doit surtout pas refuser un schéma parce qu'il le porte.
+    const s: JsonSchema = {
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "object",
+      properties: { n: { type: "integer" } },
+      additionalProperties: false,
+    };
+    expect(validateArgs(s, { n: 1 })).toEqual([]);
+    expect(validateArgs(s, { n: "x" })).toHaveLength(1);
+  });
+});

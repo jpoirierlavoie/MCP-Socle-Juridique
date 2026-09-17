@@ -32,6 +32,17 @@ export {
   tropDeRequetes,
 } from "./identite/refus";
 export {
+  type IdentiteServeur,
+  type OptionsDecouverte,
+  resultatDecouverte,
+} from "./protocole/decouverte";
+export {
+  type CorpsAValider,
+  decoderSentinelle,
+  HEADER_MISMATCH,
+  validerEntetes,
+} from "./protocole/entetes";
+export {
   corsHeaders,
   debitAcceptable,
   jsonResponse,
@@ -42,6 +53,22 @@ export {
   originesAdmises,
   preflight,
 } from "./protocole/http";
+export {
+  avecCache,
+  avecServerInfo,
+  CLEF_CAPACITES,
+  CLEF_CLIENT,
+  CLEF_SERVEUR,
+  CLEF_VERSION,
+  clientLisible,
+  complet,
+  estCachable,
+  type InfoClient,
+  lireMeta,
+  type MetaRequete,
+  type PorteeCache,
+  RESULTATS_CACHABLES,
+} from "./protocole/meta";
 export {
   type Annotations,
   listToolDescriptors,
@@ -67,3 +94,12 @@ export {
   type ToolResult,
 } from "./protocole/rpc";
 export { type JsonSchema, TYPES_CONNUS, validateArgs } from "./protocole/valide";
+export {
+  erreurVersion,
+  estModerne,
+  negocier,
+  PREMIERE_MODERNE,
+  UNSUPPORTED_PROTOCOL_VERSION,
+  VERSION_SANS_ENTETE,
+  versionAbsenteAdmise,
+} from "./protocole/versions";

@@ -103,3 +103,25 @@ export {
   VERSION_SANS_ENTETE,
   versionAbsenteAdmise,
 } from "./protocole/versions";
+
+export {
+  AUCUNE_RESERVE,
+  type Enveloppe,
+  enveloppe,
+  type Garde,
+  type GardesObligatoires,
+  type OptionsEnveloppe,
+  type Provenance,
+  type RegistreGardes,
+  type SansReserve,
+  type Severite,
+  severiteMax,
+} from "./sortie/enveloppe";
+
+export {
+  declarerRegistre,
+  SCHEMA_GARDE,
+  SCHEMA_PROVENANCE,
+  SEVERITES,
+  schemaEnveloppe,
+} from "./sortie/gardes";

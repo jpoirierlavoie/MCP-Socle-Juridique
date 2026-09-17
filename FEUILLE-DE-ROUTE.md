@@ -29,6 +29,34 @@ la ligne « EFVP » et la ligne « textes » soient vertes. Le code ne doit pas 
 
 ---
 
+## 0 bis. S5 — la sortie double est RETENUE (décision du 2026-09-17)
+
+Le praticien a tranché : les outils porteront un `outputSchema` publié et un
+`structuredContent` validé contre lui, **en connaissance des réserves**. Ce qui suit n'est
+donc plus une question ouverte, mais la liste de ce que la marche 4 doit livrer POUR que la
+décision tienne.
+
+**Ce que la décision renverse**, et qui doit être réécrit, non contourné :
+
+| Doctrine | Où | Statut |
+|---|---|---|
+| Invariant 4 — « pas de `structuredContent`, pas d'`outputSchema` » | `jurisprudence/CLAUDE.md`, réexaminé et maintenu le 2026-07-23 | **renversé**, et ses DEUX verrous de test remplacés (`garde.test.ts`, `rpc.test.ts`) |
+| « `outputSchema` reste ABSENT à dessein » | `legislation/CLAUDE.md` | **renversé** ; la SPEC ne l'avait pas nommé |
+
+**Le contrôle sans lequel la décision ne tient pas.** Le mode de panne que l'invariant 4
+décrivait est réel : un client qui reçoit un objet typé laisse tomber la prose, la réserve
+part avec elle, et aucun test ne rougit. La contrepartie n'est pas « ça n'arrivera pas »,
+c'est que **`gardes` soit non vide par obligation de COMPILATION** dès qu'une réserve
+s'applique — en trois couches (champ requis avec sentinelle greppable, fusion par le
+constructeur d'enveloppe et non par le gestionnaire, `minItems: 1` dans chaque
+`outputSchema`). Livrer la sortie double sans ces trois couches, c'est prendre le risque
+que la doctrine décrivait sans la parade qui le rend acceptable.
+
+**Un gain immédiat, indépendant de S5 :** `legislation` publie DÉJÀ `structuredContent` sur
+ses dix outils, sans aucun schéma pour le décrire. Un consommateur peut donc dépendre d'une
+forme que rien n'épingle, et qu'on casserait sans qu'un test le dise. Poser l'`outputSchema`
+ferme cette brèche même là où rien d'autre ne change.
+
 ## 1. Où nous en sommes
 
 | Phase | Contenu | État |

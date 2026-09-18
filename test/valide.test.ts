@@ -47,6 +47,8 @@ describe("le piège du type inconnu", () => {
   });
 
   it("TYPES_CONNUS énumère exactement ce que le validateur sait contrôler", () => {
+    // Cette liste a grandi une fois, par décision écrite : `null` y est entré avec l'union
+    // de types. C'est le rôle de cette garde — l'ensemble ne bouge pas en passant.
     expect([...TYPES_CONNUS]).toEqual([
       "object",
       "string",
@@ -54,7 +56,49 @@ describe("le piège du type inconnu", () => {
       "number",
       "boolean",
       "array",
+      "null",
     ]);
+  });
+});
+
+describe("l'union de types", () => {
+  // POURQUOI ELLE EXISTE. Une colonne D1 nullable rend `null`. Trois issues se présentaient :
+  // taire les nulls dans la charge (mensonge par omission, et à répéter dix fois), publier le
+  // champ sans `type` (contrat perdu), ou apprendre l'union au validateur. La troisième est
+  // du draft-07 standard, et c'est la seule qui DISE la nullabilité au client.
+
+  it("accepte chacun des membres", () => {
+    const s = objet({ d: { type: ["string", "null"] } });
+    expect(validateArgs(s, { d: "texte" })).toEqual([]);
+    expect(validateArgs(s, { d: null })).toEqual([]);
+  });
+
+  it("refuse ce qui n'est d'aucun membre, et le dit en toutes lettres", () => {
+    const s = objet({ d: { type: ["string", "null"] } });
+    const e = validateArgs(s, { d: 42 });
+    expect(e).toHaveLength(1);
+    expect(e[0]).toContain("une chaîne de caractères ou nul");
+  });
+
+  it("`null` seul reste un type à part entière", () => {
+    const s = objet({ d: { type: "null" } });
+    expect(validateArgs(s, { d: null })).toEqual([]);
+    expect(validateArgs(s, { d: "x" })).toHaveLength(1);
+  });
+
+  it("un `null` admis n'entraîne pas les contrôles de chaîne", () => {
+    // `typeof null === "object"` : sans la garde `value !== null`, la branche objet
+    // s'exécuterait sur un null et réclamerait ses `required`.
+    const s = objet({
+      d: { type: ["object", "null"], properties: { x: { type: "string" } }, required: ["x"] },
+    });
+    expect(validateArgs(s, { d: null })).toEqual([]);
+    expect(validateArgs(s, { d: {} })).toHaveLength(1);
+  });
+
+  it("une union vide ne contraint rien plutôt que de tout refuser", () => {
+    const s = objet({ d: { type: [] } });
+    expect(validateArgs(s, { d: 1 })).toEqual([]);
   });
 });
 

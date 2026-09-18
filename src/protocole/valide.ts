@@ -1,7 +1,8 @@
 /**
  * Validateur JSON-Schema en SOUS-ENSEMBLE.
  *
- * Mots-clefs pris en charge : `type` (object, string, integer, number, boolean, array),
+ * Mots-clefs pris en charge : `type` (object, string, integer, number, boolean, array,
+ * null — et leur UNION, `["string", "null"]`, qui est du draft-07 standard),
  * `properties`, `required`, `enum`, `minimum`, `maximum`, `minLength`, `maxLength`,
  * `minItems`, `maxItems`, `items` (un niveau), `additionalProperties: false`.
  *
@@ -25,7 +26,15 @@
  */
 
 /** Les seuls `type` que `typeOk` sait réellement contrôler. Tout autre est ignoré. */
-export const TYPES_CONNUS = ["object", "string", "integer", "number", "boolean", "array"] as const;
+export const TYPES_CONNUS = [
+  "object",
+  "string",
+  "integer",
+  "number",
+  "boolean",
+  "array",
+  "null",
+] as const;
 
 export interface JsonSchema {
   /**
@@ -38,7 +47,13 @@ export interface JsonSchema {
    * à trancher.
    */
   $schema?: string;
-  type?: string;
+  /**
+   * Un type, ou une UNION de types.
+   *
+   * L'union existe pour une raison précise : une colonne nullable rend `null`, et une
+   * sortie qui tait ses nulls ment par omission. `["string", "null"]` le dit.
+   */
+  type?: string | readonly string[];
   properties?: Record<string, JsonSchema>;
   required?: string[];
   enum?: unknown[];
@@ -55,7 +70,7 @@ export interface JsonSchema {
   default?: unknown;
 }
 
-function typeOk(expected: string, value: unknown): boolean {
+function unTypeOk(expected: string, value: unknown): boolean {
   switch (expected) {
     case "object":
       return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -69,9 +84,19 @@ function typeOk(expected: string, value: unknown): boolean {
       return typeof value === "boolean";
     case "array":
       return Array.isArray(value);
+    case "null":
+      return value === null;
     default:
       return true;
   }
+}
+
+/** Une union est satisfaite dès qu'UN de ses membres l'est. */
+function typeOk(expected: string | readonly string[], value: unknown): boolean {
+  if (typeof expected === "string") return unTypeOk(expected, value);
+  // Une union vide ne contraint rien — mieux vaut passer que refuser tout.
+  if (expected.length === 0) return true;
+  return expected.some((t) => unTypeOk(t, value));
 }
 
 const NOM_TYPE: Record<string, string> = {
@@ -81,7 +106,14 @@ const NOM_TYPE: Record<string, string> = {
   number: "un nombre",
   boolean: "un booléen",
   array: "un tableau",
+  null: "nul",
 };
+
+/** « une chaîne de caractères ou nul » — le message doit se lire, pas se décoder. */
+function nommerType(t: string | readonly string[]): string {
+  if (typeof t === "string") return NOM_TYPE[t] ?? t;
+  return t.map((x) => NOM_TYPE[x] ?? x).join(" ou ");
+}
 
 function validateValue(schema: JsonSchema, value: unknown, nom: string): string[] {
   const erreurs: string[] = [];
@@ -92,7 +124,7 @@ function validateValue(schema: JsonSchema, value: unknown, nom: string): string[
         `« ${nom} » doit être un entier compris entre ${schema.minimum} et ${schema.maximum}.`,
       );
     } else {
-      erreurs.push(`« ${nom} » doit être ${NOM_TYPE[schema.type] ?? schema.type}.`);
+      erreurs.push(`« ${nom} » doit être ${nommerType(schema.type)}.`);
     }
     return erreurs;
   }

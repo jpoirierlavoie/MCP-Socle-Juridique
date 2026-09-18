@@ -19,18 +19,26 @@
 Ce que les deux dépôts font aujourd'hui. Toute divergence non listée ici est à traiter comme
 une découverte, pas comme un oubli du présent document.
 
+> ⚠ **RELEVÉ DU 2026-09-18.** Ce tableau décrit un ÉTAT, donc il se périme, et il s'est
+> périmé : au relevé de ce jour, **cinq de ses lignes étaient fausses** — transport,
+> authentification, défaut sans secret, sortie, limitation de débit — et aucune ne
+> concernait le sujet dont on discutait alors. Deux d'entre elles portaient sur l'ACCÈS.
+> Le défaut n'est pas d'avoir eu tort : c'est d'avoir écrit un état sans date, si bien que
+> rien ne signalait qu'il fallait le revérifier. **Une ligne sans date de relevé ne se
+> croit pas** — elle se vérifie contre le disque avant usage.
+
 | | `legislation` (qclaw) | `jurisprudence` (canlii) |
 |---|---|---|
 | Cadriciel | `@modelcontextprotocol/sdk` + `agents` (`McpAgent`) | aucun — routeur `fetch` écrit à la main (D2) |
-| Transport | Streamable HTTP **avec** sessions (Durable Object) | Streamable HTTP, **JSON sans état** (D3) |
+| Transport | Streamable HTTP **sans état** — routeur du socle, `SOCLE: "true"` posé en production. Le Durable Object `QclawMCP` reste exporté et lié, **non routé**, comme ancre de retour | Streamable HTTP, **JSON sans état** (D3) |
 | Versions servies | celles du SDK | `2025-06-18`, `2025-03-26` |
-| Authentification | `MCP_TOKEN` unique — 3 porteurs : `?key=`, `Bearer`, segment de chemin | `MCP_SHARED_SECRET` (+ `_ATHENA`) — 2 porteurs : segment, `Bearer` |
-| Défaut sans secret | **OUVERT** : `if (!secret) return onMount ? request : null` — c'est le rollback documenté (R8) | **FERMÉ** : liste vide ⇒ tout refusé, épinglé par un test |
+| Authentification | `MCP_TOKEN` **et** `MCP_TOKEN_VEILLE` — 3 porteurs : `?key=`, `Bearer`, segment de chemin | `MCP_SHARED_SECRET` seul (`_ATHENA` **retiré** le 2026-09-17, son appelant ayant disparu) — **3 porteurs depuis le 2026-09-17** : `?key=` y a été AJOUTÉ, seule forme qui survive au formulaire de connecteur de claude.ai (S7) |
+| Défaut sans secret | **FERMÉ depuis le 2026-08-27**, aligné sur le jumeau. ⚠ La soupape R8 **n'existe plus** : supprimer les secrets ne rouvre pas, cela FERME définitivement (liste vide ⇒ aucune comparaison ⇒ 404 sur tout). Seul remède réel : `wrangler rollback` | **FERMÉ** : liste vide ⇒ tout refusé, épinglé par un test |
 | Refus | **404**, jamais 401 — motif **raisonné, non mesuré** (voir S8) | 401 |
 | Base | D1 `qclaw` (+ Vectorize, Workers AI si `HYBRID_SEARCH`) | D1 `canlii` (index **et** cache, D5/D6) |
-| Sortie | prose **+ `structuredContent`** sur certains outils | prose seule — **D4 et invariant 4**, réexaminé et maintenu le 2026-07-23 |
+| Sortie | prose **+ `structuredContent` PLAT** sur les dix outils, sans `outputSchema` ni contrat publié. L'enveloppe de S5 a été servie une journée puis **retirée le 2026-09-17**, sur mesure | prose seule — **D4 et invariant 4**, réexaminé et maintenu le 2026-07-23, **et CONFIRMÉ le 2026-09-17** par la mesure faite chez le jumeau |
 | Journal | `search_log(ts, tool, query, …)` — `query` en clair, horodaté **à la seconde**, à chaque appel de `search_text` et `find_relevant` | `search_log` (chaînes de citation soumises), `api_usage` |
-| Limitation de débit | aucune | `RATE_LIMITER` (§9.3), clé = **`CF-Connecting-IP`**, 60/min, plafond dans `wrangler.jsonc` |
+| Limitation de débit | `RATE_LIMITER`, clé = **`CF-Connecting-IP`**, **300/min** — seuil MESURÉ : `npm run evals` émet 61 requêtes en 3 s, donc 60/min ferait tomber le harnais | `RATE_LIMITER` (§9.3), clé = **`CF-Connecting-IP`**, 60/min, plafond dans `wrangler.jsonc` |
 | Page publique | `GET /`, cache d'arête à clé fixe | `GET /`, dérivée du registre (invariant 19) |
 | Clef tierce | aucune | `CANLII_API_KEY` de l'exploitant |
 | WAF de zone | bloque les rafales de POST non-navigateur sur le domaine personnalisé (invariant 9) | à vérifier |
@@ -63,7 +71,7 @@ un motif à retrouver, jamais un motif à inventer.
 | S17 | Cache CanLII : **partagé** pour le répertoire des bases ; **cloisonné par titulaire et à durée bornée** pour les fiches de décision, jusqu'à détermination écrite de CanLII. | Le répertoire est de la donnée de référence qu'aucune clef ne possède ; une fiche est tirée de la collection sous la clef d'un licencié. |
 | S18 | Identifiants **frappés sous le domaine du cabinet et déréférençables**, sur le patron FRBR d'Akoma Ntoso. Aucun identifiant frappé sur la donnée d'autrui. | Aucune autorité canadienne n'a enregistré d'espace `urn:lex` ; ELI est européen. Pour la jurisprudence, les identifiants de CanLII font autorité : les reprendre tels quels. |
 | S19 | La recherche hybride (Workers AI, Vectorize) est **désarmable par titulaire**, et déclarée dans la fiche de conformité. | Elle envoie le texte de la requête à un tiers. C'est la fuite la moins visible du dispositif. |
-| S20 | Toute documentation de gouverne — quotas, durées de conservation, codes de mise en garde, **liste** des signaux de comportement — **dérive du code**, comme la page dérive du registre (invariant 19). **Exception unique et nommée** : les valeurs de franchissement des signaux (§6.3) vivent dans un secret, ne sont ni versionnées ni publiées, et ne sont donc dérivées de rien. | Une valeur recopiée devient fausse sans que rien n'échoue : c'est le mode de panne que ces dépôts combattent partout ailleurs. Mais les trois dépôts sont **publics**, et un seuil de détection versionné est un seuil publié — donc un seuil contournable. La dérivation s'arrête là, et l'exception est écrite ici pour qu'on ne la découvre pas. |
+| S20 | Toute documentation de gouverne — quotas, durées de conservation, **liste** des signaux de comportement — **dérive du code**, comme la page dérive du registre (invariant 19). **Exception unique et nommée** : les valeurs de franchissement des signaux (§6.3) vivent dans un secret, ne sont ni versionnées ni publiées, et ne sont donc dérivées de rien. | Une valeur recopiée devient fausse sans que rien n'échoue : c'est le mode de panne que ces dépôts combattent partout ailleurs. Mais les trois dépôts sont **publics**, et un seuil de détection versionné est un seuil publié — donc un seuil contournable. La dérivation s'arrête là, et l'exception est écrite ici pour qu'on ne la découvre pas. |
 
 ---
 
@@ -72,49 +80,46 @@ un motif à retrouver, jamais un motif à inventer.
 ```
 MCP-Socle-Juridique/
 ├── src/
-│   ├── protocole/
+│   ├── identite/             LA RAISON D'ÊTRE DU SOCLE
+│   │   ├── porteur.ts        extraction du jeton : Bearer | ?key= | segment de chemin ;
+│   │   │                     comparaison SHA-256 + timingSafeEqual, sans court-circuit ;
+│   │   │                     FERMÉ PAR DÉFAUT — liste de secrets vide ⇒ tout refusé
+│   │   └── refus.ts          404 sans oracle (S8)
+│   ├── protocole/            le transport que l'identité emprunte, et rien de plus
 │   │   ├── rpc.ts            enveloppe JSON-RPC 2.0 (repris de jurisprudence/src/mcp/rpc.ts)
-│   │   ├── transport.ts      Streamable HTTP sans état : POST unique, JSON ou SSE par requête
-│   │   ├── entetes.ts        MCP-Protocol-Version, Mcp-Method, Mcp-Name, Mcp-Param-*,
-│   │   │                     décodage du sentinelle =?base64?…?=, validation en-tête<->corps
+│   │   ├── http.ts           CORS, origines admises, préflight, debitAcceptable, jsonResponse
+│   │   ├── entetes.ts        MCP-Protocol-Version, Mcp-Method, Mcp-Name,
+│   │   │                     décodage de la sentinelle =?base64?…?=, en-tête<->corps (-32020)
 │   │   ├── meta.ts           _meta : protocolVersion, clientInfo, clientCapabilities, serverInfo
 │   │   ├── decouverte.ts     server/discover
-│   │   ├── versions.ts       négociation, UnsupportedProtocolVersionError, pont vers initialize
+│   │   ├── versions.ts       négociation, -32022, pont vers initialize (sans état)
 │   │   ├── valide.ts         JSON Schema en sous-ensemble (repris de jurisprudence)
-│   │   └── registre.ts       ToolDescriptor : + outputSchema, + classe, + ordre déterministe
-│   ├── identite/
-│   │   ├── porteur.ts        extraction du jeton : Bearer | ?key= | segment de chemin
-│   │   ├── titulaire.ts      résolution jeton -> Titulaire, à temps constant
-│   │   └── refus.ts          404 sans oracle (S8) ; bascule 401+PRM derrière un drapeau
-│   ├── coffre/
-│   │   ├── enveloppe.ts      HKDF-SHA256 + AES-256-GCM, AAD liée au titulaire
-│   │   └── canlii.ts         ouvrirClientCanlii(titulaire) -> CanliiClient  (JAMAIS -> string)
-│   ├── gouverne/
-│   │   ├── debit.ts          limiteur d'arête, clé = titulaire_id
-│   │   ├── quota.ts          compteurs journaliers par classe
-│   │   ├── score.ts          signaux de comportement (§6.3), calculés sans contenu
-│   │   ├── etats.ts          machine d'états du titulaire + registre en ajout seul
-│   │   └── coupe.ts          coupe-circuits : global, par outil, par titulaire
-│   ├── journal/
-│   │   ├── technique.ts      type sans champ libre — l'invariant S13 est dans le type
-│   │   ├── forme.ts          expurgerForme() + écriture agrégée
-│   │   └── purge.ts          rétention, appelée par le cron
-│   ├── sortie/
-│   │   ├── enveloppe.ts      Enveloppe<T> : @context, @type, @id, donnees, provenance, gardes
-│   │   ├── gardes.ts         registre des codes de mise en garde (§8.4)
-│   │   ├── frbr.ts           frappe et analyse des identifiants (§8.2)
-│   │   └── jsonld.ts         contexte servi, cadrage
-│   ├── page/
-│   │   ├── rendu.ts          page publique dérivée du registre
-│   │   └── wellknown.ts      /.well-known/, contexte JSON-LD, paquet de schémas
+│   │   └── registre.ts       ToolDescriptor, listToolDescriptors — PAS callTool
 │   └── index.ts              rien d'exécutable : uniquement des exports
 ├── test/                     tests du socle, sans réseau ni clef
 └── package.json              "type": "module", zéro dépendance d'exécution
 ```
 
+> ⚠ **CE DESSIN EST UN RELEVÉ DU 2026-09-18**, pris sur `find src -type f`, et non une
+> intention. Le précédent montrait **sept** répertoires et vingt-et-une lignes de fichiers ;
+> douze d'entre elles nommaient des fichiers jamais écrits, et cinq répertoires entiers
+> — `coffre/`, `gouverne/`, `journal/`, `sortie/`, `page/` — ne contenaient qu'un
+> `LISEZ-MOI`. Ils ont été supprimés le 2026-09-17.
+>
+> Un dessin d'arborescence se lit comme un ÉTAT, jamais comme un plan. Ce qui reste à faire
+> se dit dans une §11, où l'on sait que c'est à faire.
+>
+> Ce qui a disparu n'a pas disparu du même mouvement : `sortie/` a été MESURÉ puis écarté
+> (S5, abandonnée) et ne revient pas. Les quatre autres restent des phases à venir dont le
+> lieu d'implantation n'est plus arrêté — le socle ne les accueillera qu'à la condition
+> nouvelle du `CLAUDE.md` : **un besoin mesuré, pas une spécification qui l'a écrit**.
+
 **Ce que le socle ne porte jamais.** L'analyseur de citations, les tables du Québec, le
-pipeline EPUB, les descripteurs d'outils, les gabarits de rendu du domaine. Le socle ne connaît
-pas le droit. S'il faut y écrire le mot « article », c'est qu'on s'est trompé de dépôt.
+pipeline EPUB, les descripteurs d'outils, les gabarits de rendu du domaine, **la sortie
+structurée et les mises en garde**. Le socle ne connaît pas le droit. S'il faut y écrire le
+mot « article », c'est qu'on s'est trompé de dépôt.
+
+**Ce qu'il porte, et rien d'autre :** l'identité, et le transport MCP qui la porte.
 
 ---
 
@@ -172,9 +177,25 @@ Le pont vit dans `protocole/versions.ts` et dans lui seul.
 
 - Requête **sans** `MCP-Protocol-Version` : la spécification n'ouvre que deux branches — la
   traiter comme `2025-03-26` (permis seulement si l'on prend en charge les clients antérieurs
-  à `2025-06-18`), ou la refuser en `400` + `-32020`. S3 retirant `2025-03-26`, **la refuser**.
-  Ne jamais la promouvoir silencieusement en `2025-06-18` : ce serait inventer une troisième
-  branche.
+  à `2025-06-18`), ou la refuser en `400` + `-32020`. Ne jamais la promouvoir silencieusement
+  en `2025-06-18` : ce serait inventer une troisième branche.
+
+  ⛔ **DEUX RECTIFICATIONS, toutes deux payées en production. À lire avant d'appliquer.**
+
+  **(a) `initialize` EST TOUJOURS EXEMPTÉ, quelle que soit la branche retenue.** Sous
+  `2025-06-18`, l'en-tête n'est exigé que sur les requêtes POSTÉRIEURES à l'initialisation :
+  le POST `initialize` n'en porte légitimement aucun. Le refuser rejetterait la poignée de
+  **tout client conforme**, connecteur claude.ai compris. `versionAbsenteAdmise` rend donc
+  `true` sur `initialize` inconditionnellement — voir `protocole/versions.ts`, qui porte la
+  garde. Cette phrase manquait, et l'omission a coûté un incident.
+
+  **(b) Le choix entre les deux branches est COUPLÉ au maintien de `2025-03-26`.** La règle
+  disait « S3 retirant `2025-03-26`, **la refuser** » — mais S3 n'a pas été appliquée :
+  `2025-03-26` est toujours servie par les deux connecteurs. Refuser la requête sans
+  appliquer la prémisse a fait rendre `400` à la veille mensuelle, **deux fois**, la veille
+  n'envoyant pas l'en-tête. Tant que `2025-03-26` est servie, une requête sans en-tête est
+  traitée comme telle. Le jour où elle sera retirée, et seulement ce jour-là, la refuser
+  devient permis — et c'est un *MAY* de la norme, pas un *MUST*.
 - Méthode `initialize` reçue : répondre comme avant, et retenir la version annoncée pour la
   durée de la requête seulement. Aucun état conservé — c'est une **imitation** de poignée.
 - `notifications/initialized` : `202` vide.
@@ -280,7 +301,7 @@ export async function resoudre(db: D1Database, presente: string): Promise<Titula
   **inconnu** : même issue, même code, même délai. Aucun oracle.
 - **Fermé par défaut, sans exception.** Aucune configuration ne doit ouvrir le point d'entrée :
   ni l'absence de secret, ni une table `jeton` vide, ni une erreur de lecture D1. C'est
-  l'inverse du comportement actuel de `legislation` (`if (!secret) return onMount ? request`),
+  l'inverse du comportement que `legislation` a eu jusqu'au 2026-08-27 (`if (!secret) return onMount ? request`),
   qui est aussi son seul rollback documenté — d'où la marche 5 de la §11, à lire avant de
   toucher à `MCP_TOKEN`.
 - `vu_le` est écrit **au plus une fois par jour et par jeton**, dans `ctx.waitUntil`.
@@ -355,6 +376,13 @@ connecteur prête à coller pour chacun des trois porteurs (S7).
 
 ## 5. Coffre de clefs CanLII
 
+> ⚠ **LIEU D'IMPLANTATION NON ARRÊTÉ depuis le 2026-09-17.** Le répertoire `src/coffre/` a
+> été supprimé du socle : il ne contenait qu'un `LISEZ-MOI`, et la portée du socle a été
+> resserrée sur l'identité et le transport (S1 amendée). La CONCEPTION ci-dessous reste
+> valide en entier ; seuls les chemins qu'elle cite sont désormais indicatifs. Le coffre ne
+> remontera au socle qu'à la condition nouvelle du `CLAUDE.md` — un besoin mesuré — et il
+> dépend de toute façon du titulaire, qui n'existe pas encore.
+
 ### 5.1 Schéma
 
 ```sql
@@ -395,7 +423,7 @@ Le texte clair vit dans une fermeture, le temps de fabriquer le client, et n'est
 valeur que le reste du code peut tenir, renvoyer ou journaliser. Aucune autre fonction du dépôt
 ne déchiffre. Trois tests de garde :
 
-1. `coffre/canlii.ts` est le seul fichier qui importe `enveloppe.ts`.
+1. Le module d'ACCÈS du coffre est le seul qui importe le module de CHIFFREMENT (chemins indicatifs : voir l'avertissement en tête de §5).
 2. Aucune signature exportée du dépôt ne rend une clef — `grep` de retour `string` sur les
    symboles dont le nom contient `clef`, `key`, `secret`.
 3. La suite existante `redactUrl` est généralisée en `expurger()` et appliquée à **toute**
@@ -741,49 +769,40 @@ l'argument n'est pas une chaîne littérale ou une valeur d'un type sûr énumé
 
 ---
 
-## 8. Sortie structurée
+## 8. Identifiants
 
-### 8.1 L'enveloppe
+> ⛔ **CETTE SECTION S'APPELAIT « SORTIE STRUCTURÉE » ET A ÉTÉ AMPUTÉE LE 2026-09-18.**
+>
+> Quatre sous-sections ont été retirées avec S5 : **8.1 L'enveloppe**, **8.3 Surface
+> `resources/`**, **8.4 Registre des codes de garde** (les quatorze codes) et **8.5 Contrat
+> éprouvable par un tiers**. Elles décrivaient une sortie qui a été construite, servie en
+> production une journée, mesurée, puis retirée.
+>
+> **La mesure, puisque c'est elle qui a tranché** (`legislation`, 2026-09-17) :
+> `tools/list` passait de 12 279 à 43 145 octets — de ~3 070 à ~10 786 jetons **par
+> session** — dont 78 % n'étaient pas de la prose utile mais le squelette d'enveloppe
+> (provenance, gardes, pagination) répété à l'identique dans les dix schémas. Sur
+> `get_article`, l'enveloppe pesait 27 % de la réponse, soit 72 % de la taille des données
+> qu'elle entourait.
+>
+> **Pourquoi c'était le mauvais marché.** Un `outputSchema` sert un lecteur qui lit des
+> schémas. Le lecteur réel est un modèle, qui lit la prose française ; le destinataire est
+> un avocat, qui sait déjà qu'une recherche CanLII n'est pas un citateur. Étiqueter chaque
+> risque pour un lecteur averti coûte des jetons et n'achète rien.
+>
+> **L'invariant 4 de `jurisprudence` n'est donc pas renversé : il est CONFIRMÉ**, et sa
+> condition (1) — « un consommateur identifié, qui existe et LE DEMANDE » — remplace
+> « partout » comme critère, parce qu'elle est falsifiable.
+>
+> Ce qui SUBSISTE de la sortie : `legislation` émet une charge `structuredContent` **plate**
+> sur ses dix outils, antérieure au socle, sans `outputSchema` ni contrat publié. Ses
+> harnais la lisent. Elle ne bouge pas.
+>
+> **Ce qui suit — les identifiants — a été CONSERVÉ délibérément.** Nommer un texte de façon
+> stable est une question qui se pose que la sortie soit typée ou non, et l'analyse qui suit
+> a coûté cher. Elle ne promet aucune enveloppe.
 
-Tout outil rend un `content` en prose française **et** un `structuredContent` de la forme
-suivante, validé contre un `outputSchema` publié.
 
-```ts
-interface Enveloppe<T> {
-  "@context": string;      // https://<hôte>/ns/v1
-  "@type": string;         // "Article" | "Division" | "Loi" | "Decision" | "Verdict" | …
-  "@id"?: string;          // identifiant déréférençable (§8.2), quand il en existe un
-  donnees: T;
-  provenance: Provenance;
-  gardes: Garde[];         // §8.4 — jamais vide quand une réserve s'applique
-  pagination?: { offset: number; limite: number; total?: number };
-}
-
-interface Provenance {
-  source: "legisquebec" | "canlii" | "mjq" | "local";
-  autorite: string;               // « Éditeur officiel du Québec », « CanLII », « MJQ »
-  corpus_version?: string;        // « 2026-04-01 » — l'EXPRESSION FRBR
-  releve_le?: string;             // pour les tables du MJQ : « 2026-07-15 »
-  cache: "aucun" | "local" | "arete";
-  cache_pose_le?: string;
-}
-
-interface Garde { code: CodeGarde; severite: "information" | "reserve" | "avertissement"; texte: string; }
-```
-
-**La prose reste la prose.** Ne pas rendre du JSON dans `content`, ne pas dupliquer la prose
-dans `structuredContent`. Chaque canal a son destinataire : la mise en garde se lit dans la
-prose, elle s'applique depuis `gardes`.
-
-**Écart assumé, consigné.** `2026-07-28` recommande (SHOULD) qu'un outil rendant du contenu
-structuré renvoie **aussi** le JSON sérialisé dans un bloc `TextContent`, pour la compatibilité
-descendante. On ne le fait pas : le bloc textuel est réservé à la prose qui porte la réserve, et
-la dupliquer en JSON invite le modèle à lire la seconde et à ignorer la première — soit
-exactement le mode de panne que l'invariant 4 de `jurisprudence` décrivait. Le contrôle qui rend
-cet écart tenable : **`gardes` non vide est une obligation de compilation** dès qu'une réserve
-s'applique à l'outil appelé, et non une intention.
-
-### 8.2 Identifiants
 
 **Législation — frappés, sur le patron FRBR d'Akoma Ntoso.**
 
@@ -823,62 +842,6 @@ Ces routes sont **publiques et non authentifiées** — le corpus législatif es
 officiel. Elles ne portent aucun jeton, ne lisent jamais `request.url` dans un journal, et
 sont mises en cache à l'arête sur une clé synthétique (le piège du cache local de miniflare est
 déjà documenté dans `legislation/src/index.ts` : le relire avant d'itérer sur ces routes).
-
-### 8.3 Surface `resources/`
-
-Exposer le corpus en ressources MCP dont l'**URI est l'identifiant `https://` déréférençable**
-de la §8.2. Deux effets : un `ResourceLink` dans un résultat d'outil devient une adresse qu'un
-praticien peut ouvrir, et un client peut lire une ressource sans passer par un outil.
-
-`resources/templates/list` déclare `…/id/qc/loi/{loi}/{lang}@{version}/art_{numero}`.
-`subscriptions/listen` : **non implémenté** — les corpus bougent deux fois l'an, `ttlMs` suffit.
-
-### 8.4 Registre des codes de garde
-
-Un tableau unique dans `sortie/gardes.ts`, publié sur la page et au `.well-known`. La prose de
-chaque garde est celle qui figure déjà dans les gabarits de rendu : la promotion est mécanique,
-pas rédactionnelle.
-
-| Code | Sévérité | Où |
-|---|---|---|
-| `REPERAGE_HEURISTIQUE` | reserve | `qclaw_find_relevant`, `qclaw_search_text` |
-| `TEXTE_A_VERIFIER` | reserve | toute sortie législative |
-| `LANGUE_DISCORDANTE` | avertissement | requête FR sous `lang=en` et inversement |
-| `METADONNEES_SEULEMENT` | avertissement | tout `canlii_*` de décision |
-| `AUCUN_HISTORIQUE_APPEL` | avertissement | `canlii_citator`, `canlii_subsequent_history` |
-| `AUCUN_INDICATEUR_TRAITEMENT` | avertissement | idem |
-| `COUVERTURE_CANLII` | reserve | tout verdict |
-| `ABSENCE_NON_PROBANTE` | avertissement | tout verdict négatif |
-| `ADRESSE_PERISSABLE` | avertissement | `palais_get`, `palais_list` |
-| `TABLE_LOCALE_DATEE` | information | `greffe_*`, `palais_*` |
-| `SANS_ADRESSE_PUBLIEE` | information | les six greffes concernés |
-| `SERVI_DU_CACHE` | information | toute réponse servie du cache |
-| `REPLI_LEXICAL` | information | mode hybride indisponible ou désarmé |
-| `RESULTAT_PARTIEL` | reserve | budget d'appels sortants épuisé |
-
-`LANGUE_DISCORDANTE` **n'a rien à voir avec l'article 490 C.p.c.** L'affaire 490 était un échec
-de *repérage* — ET implicite de FTS5, recherche restreinte à une loi, absence de pont sémantique
-— et les rapports de phase la donnent réglée (cas 19 au rang 3, rappel@10 de 98 %). La
-discordance de langue est un autre sujet, celui de l'invariant 4 de `legislation` : le
-correctif est livré et épinglé par une éval, mais **la garde émise ne l'est pas**. C'est elle
-que ce code ajoute. Ce qui reste ouvert sur 490 relève de la curation
-(`gazetteer.json`, `division-links.json`, tous deux `validated: false`) et se dit sous
-`REPERAGE_HEURISTIQUE`.
-
-### 8.5 Contrat éprouvable par un tiers
-
-- Contexte JSON-LD servi à `/ns/v1`, immuable ; toute rupture est `/ns/v2`.
-- Paquet de schémas à `/.well-known/mcp-schemas.json` : tous les `inputSchema` et `outputSchema`.
-- Fixtures de référence versées au dépôt (`fixtures/publiques/`), avec un script qui les rejoue
-  contre le serveur déployé. Un tiers doit pouvoir éprouver son intégration sans vous écrire.
-  **Le rejeu est une rafale de `POST` non-navigateur** : il rencontrera le WAF de la zone
-  (invariant 9) avant tout limiteur. Le script doit viser `workers.dev`, ou la règle doit être
-  ajustée — et le document remis au tiers doit le dire, sinon son premier essai échouera pour
-  un motif introuvable.
-- La page publique **dérive du registre**, sans seconde copie — invariant 19 existant, étendu
-  aux `outputSchema`, aux gardes, aux quotas et aux durées de conservation (S20).
-
----
 
 ## 9. Consoles
 
@@ -952,15 +915,28 @@ d'équivalent n'est consigné pour `jurisprudence`.
 3. **`2026-07-28` et `2025-11-25` ajoutés, `2025-06-18` conservé — les trois de S3.** Le pont
    de la §3.3 en premier. Ne retirer `2025-03-26` qu'après avoir constaté qu'aucun client ne
    l'annonce (le `clientInfo` du plan technique le dira).
-4. **Sortie double, sans retirer la prose.** `structuredContent` ajouté outil par outil ;
-   `content` intouché.
+4. ~~**Sortie double, sans retirer la prose.**~~ **SANS OBJET** — S5 abandonnée le
+   2026-09-17. La marche a été exécutée en entier sur `legislation`, servie une journée en
+   production, mesurée, puis retirée : ~7 700 jetons par session pour publier un contrat
+   qu'aucun lecteur ne lisait. Ne pas la refaire sans qu'un consommateur nommé le demande.
 5. **Identité, en parallèle du secret partagé.** Les jetons par titulaire sont acceptés **en
    plus** de `MCP_TOKEN` et `MCP_SHARED_SECRET`. Poser un jeton de titulaire pour votre propre
-   usage, vérifier, puis pour Pallas Athéna. **Danger, et il est réel :** sur `legislation`,
-   retirer `MCP_TOKEN` n'éteint pas l'authentification, il **ouvre** `/mcp` — c'est le
-   comportement R8, et c'est aussi le seul rollback qui a sauvé le connecteur le 2026-07-25.
-   L'ordre est donc : livrer le défaut fermé du socle, **le vérifier par la porte G21**, et
-   seulement ensuite retirer les secrets partagés. Jamais l'inverse.
+   usage, puis vérifier.
+
+   ⛔ **LE DANGER DÉCRIT ICI S'EST INVERSÉ LE 2026-08-27, et ce paragraphe a menti trois
+   semaines.** Il avertissait que retirer `MCP_TOKEN` **ouvrirait** `/mcp`. C'est le
+   contraire : depuis le défaut fermé, une liste de secrets vide ne donne AUCUNE comparaison
+   à faire, donc tout répond 404. Retirer les secrets partagés **ferme** le connecteur, et
+   la soupape R8 n'existe plus.
+
+   L'ordre reste néanmoins le même, pour une raison qui a simplement changé de signe : ne
+   retirer les secrets partagés qu'**après** avoir vérifié qu'un jeton de titulaire ouvre
+   réellement — sans quoi on se retrouve dehors, sans porte de rechange, avec pour seul
+   recours `wrangler rollback` (dont la péremption tient à toute migration de classe
+   Durable Object survenue entre-temps).
+
+   Pallas Athéna ne figure plus dans cette marche : son clavardage a été supprimé le
+   2026-09-02 et `MCP_SHARED_SECRET_ATHENA` retiré le 2026-09-17.
 6. **Coffre.** Votre clef y entre en premier. Vérifier qu'un titulaire d'essai sans clef reçoit
    bien `CLEF_ABSENTE` **avec** `CANLII_API_KEY` encore posée (S12). Ne retirer
    `CANLII_API_KEY` qu'ensuite.
@@ -988,12 +964,12 @@ règle des deux dépôts et l'ouverture la rend plus impérative, pas moins.
 | G2 | Registre confronté au README, et à la page publique — l'écart est une dérive même si tout est vert | toutes |
 | G3 | Une même session d'évaluation passe en `2026-07-28`, `2025-11-25` et `2025-06-18` | 1 |
 | G4 | `tools/list` rend le même ensemble, dans le même ordre, sous les trois versions | 1 |
-| G5 | Tout `structuredContent` valide contre son `outputSchema` publié — sur **toutes** les fixtures | 1, 5 |
+| ~~G5~~ | ~~Tout `structuredContent` valide contre son `outputSchema` publié~~ — **RETIRÉE le 2026-09-17** avec S5. Aucun `outputSchema` n'est publié ; la charge plate de `legislation` ne porte aucun contrat, délibérément | — |
 | G6 | Le pré-vol CORS n'est jamais limité en débit ; une origine inconnue est refusée avant l'authentification | 1 |
 | G7 | Jeton inconnu, expiré, révoqué, et titulaire suspendu : **même** réponse, **même** code, **même** délai | 2 |
 | G8 | Un titulaire sans clef reçoit `CLEF_ABSENTE` alors que `CANLII_API_KEY` est posée | 2 |
 | G9 | Aucune sortie journalisable ne contient la clef CanLII, le jeton, ni `request.url` — étendu au coffre et à `X-Clef-CanLII` | 2 |
-| G10 | Aucune signature exportée ne rend une clef en clair ; `enveloppe.ts` n'est importé que par `coffre/canlii.ts` | 2 |
+| G10 | Aucune signature exportée ne rend une clef en clair ; le module de chiffrement du coffre n'est importé que par son module d'accès | 2 |
 | G11 | Un titulaire d'essai est limité par l'automate, puis rétabli, et les deux transitions figurent au registre | 3 |
 | G12 | Aucun `UPDATE` ni `DELETE` sur `registre_gouverne` dans le dépôt | 3 |
 | G13 | Test de garde de schéma : aucune table ne porte à la fois un titulaire et un texte libre | 4 |

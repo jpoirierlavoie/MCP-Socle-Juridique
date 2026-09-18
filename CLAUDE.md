@@ -38,7 +38,7 @@ le même commit :
 sous silence. Le coût en jetons de cette vérification est assumé.
 
 Le socle est consommé par **étiquette git**
-(`github:jpoirierlavoie/MCP-Socle-Juridique#v0.1.0`), en `devDependencies`, et empaqueté
+(`github:jpoirierlavoie/MCP-Socle-Juridique#v0.5.0`), en `devDependencies`, et empaqueté
 par esbuild au déploiement. **Jamais une dépendance d'exécution** (S2, D2).
 
 ## Invariants
@@ -46,8 +46,13 @@ par esbuild au déploiement. **Jamais une dépendance d'exécution** (S2, D2).
 1. **Zéro dépendance d'exécution.** `dependencies` doit rester absent de `package.json`.
    C'est la décision D2, et c'est ce qui rend le socle acceptable pour les deux dépôts.
 2. **`queryKey` est optionnel dans `identite/porteur.ts`.** Absent ⇒ pas de porteur
-   `?key=`. Le rendre obligatoire donnerait à `jurisprudence` une surface d'accès qu'il
-   n'a pas — contraire à « sans rien exposer de nouveau ».
+   `?key=`. L'invariant tient ; son MOTIF, lui, a été corrigé le 2026-09-18. Il disait
+   « le rendre obligatoire donnerait à `jurisprudence` une surface d'accès qu'il n'a pas ».
+   **`jurisprudence` SERT `?key=` depuis le 2026-09-17** (`src/index.ts`, `PORTE`), parce
+   que c'est la seule forme qui survive au formulaire de connecteur de claude.ai (S7). Le
+   champ reste optionnel pour une raison plus durable : un connecteur ne doit pas hériter
+   d'une surface d'accès par le seul fait de consommer le socle. L'ouvrir doit être un geste
+   ÉCRIT dans le dépôt qui l'ouvre.
 3. **Fermé par défaut, sans exception.** Aucune configuration ne doit ouvrir un point
    d'entrée : ni l'absence de secret, ni une table vide, ni une erreur de lecture.
 4. **Les tests tournent dans `workerd`, pas dans Node.** `crypto.subtle.timingSafeEqual`
@@ -72,11 +77,28 @@ npx vitest run        # tests, sous workerd
 
 Dans cet ordre, et tous verts avant de faire progresser une étiquette.
 
-## État au 2026-09-16
+## État au 2026-09-18
 
-- Marche 0.2 faite : dépôt amorcé, outillage vérifié (tsc, biome, vitest sous workerd).
-- `src/` ne contient encore que `index.ts` (vide) et les `LISEZ-MOI.md` de répertoire.
-  Les marches 1 à 4 les remplissent.
+⚠ CETTE SECTION EST UN RELEVÉ DATÉ, non une intention. Si elle n'a pas de date récente,
+  ne pas s'y fier : la précédente annonçait un `src/` vide alors qu'il portait dix modules.
+
+- `src/identite/` : `porteur.ts` (trois porteurs, comparaison SHA-256 + `timingSafeEqual`,
+  fermé par défaut), `refus.ts`. **C'est le cœur du socle et la raison de son existence.**
+- `src/protocole/` : `rpc.ts`, `valide.ts`, `registre.ts`, `versions.ts`, `entetes.ts`,
+  `meta.ts`, `decouverte.ts`, `http.ts`. Le transport que l'identité emprunte.
+- **Rien d'autre.** `sortie/`, `coffre/`, `gouverne/`, `journal/` et `page/` ont été
+  SUPPRIMÉS le 2026-09-17 : le premier sur mesure (S5 abandonnée), les quatre autres parce
+  qu'ils ne contenaient qu'un `LISEZ-MOI` tenant lieu d'intention.
+- Étiquette **v0.5.0**, consommée par les deux connecteurs.
+- **Ce qui est écrit mais n'a AUCUN appelant** : `frapperJeton`, `LONGUEUR_JETON` et
+  `empreinte` (`porteur.ts`). Bon code, éprouvé, mais prématuré — il attend la table
+  `jeton` qui lui donnerait un sens. À garder à l'œil : c'est exactement ce que la règle
+  de frontière ci-dessus interdit désormais de faire entrer.
+- **Ce que le socle N'AUTHENTIFIE PAS**, et qu'il faut savoir avant d'y compter : aucun
+  usager. Il compare une chaîne présentée à des secrets d'exploitation posés par
+  `wrangler secret put`. Deux appelants porteurs du même secret sont indiscernables, et
+  retirer un accès retire celui de tous les porteurs de ce secret. L'identité PAR TITULAIRE
+  (S6, `identite/titulaire.ts`) n'existe pas.
 - **Vulnérabilités connues et acceptées** : `npm audit` signale 5 entrées hautes, toutes
   transitives par `miniflare` (`sharp`/libheif, `undici`) et toutes **de développement
   seulement** — le socle n'expédie aucune dépendance d'exécution. Le correctif proposé

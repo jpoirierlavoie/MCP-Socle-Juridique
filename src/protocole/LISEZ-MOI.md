@@ -12,4 +12,4 @@ négociation de versions, `server/discover`, validation de schémas, registre d'
 | `entetes.ts` | 3 | `MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`, `Mcp-Param-*`, sentinelle `=?base64?…?=`, validation en-tête ↔ corps (`-32020`) |
 | `meta.ts` | 3 | `_meta` : `protocolVersion`, `clientInfo`, `clientCapabilities` en entrée ; `serverInfo` en sortie — **dans `_meta`**, non à la racine |
 | `decouverte.ts` | 3 | `server/discover` (**MUST** sous `2026-07-28`), avec `ttlMs` et `cacheScope` |
-| `transport.ts` | 3 | POST unique, JSON ou SSE par requête |
+| `http.ts` | 1 | CORS, origines admises, préflight, limitation de débit (`debitAcceptable`, qui ÉCHOUE OUVERT), réponses JSON. Employé par les deux connecteurs |

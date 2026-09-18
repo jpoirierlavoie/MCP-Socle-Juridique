@@ -124,18 +124,20 @@ export interface ToolResult {
   content: Array<{ type: "text"; text: string }>;
   isError: boolean;
   /**
-   * Charge utile typée, validée contre l'`outputSchema` publié de l'outil.
+   * Charge utile typée, telle que l'outil la pose. SANS contrat publié.
    *
-   * ⚠ OPTIONNEL, ET CE N'EST PAS UN DÉTAIL. Le champ existe parce que `legislation` émet
-   *   une charge structurée sur ses dix outils depuis toujours, et que la marche 2 exige
-   *   qu'il continue à l'émettre À L'IDENTIQUE. Il n'est PAS l'arrivée de S5 : la sortie
-   *   double impose en plus un `outputSchema` publié et une enveloppe dont le champ
-   *   `gardes` est non vide par obligation de compilation. Tant que `sortie/` n'est pas
-   *   livré, ce champ ne porte que ce que l'outil y met, sans contrat.
+   * ⚠ OPTIONNEL, ET CE N'EST PAS UN DÉTAIL. Le champ existe pour une seule raison :
+   *   `legislation` émet une charge structurée plate sur ses dix outils depuis bien avant
+   *   le socle, et doit continuer à l'émettre À L'IDENTIQUE.
    *
-   *   Conséquence immédiate : `jurisprudence` ne doit RIEN y mettre. Son invariant 4
-   *   tient jusqu'à la marche 4, et deux de ses tests l'épinglent sur les sorties réelles.
-   *   Élargir le TYPE ne renverse aucune doctrine — seul le ferait un outil qui s'en sert.
+   *   Il ne porte AUCUN contrat. Aucun `outputSchema` n'est publié, et le socle n'offre
+   *   plus d'enveloppe — voir S5, ABANDONNÉE le 2026-09-17 sur mesure : publier les
+   *   schémas coûtait ~7 700 jetons par session à `legislation` pour servir un lecteur de
+   *   schémas qui n'existe pas, le lecteur réel étant un modèle qui lit la prose.
+   *
+   *   Conséquence pour `jurisprudence` : il ne met RIEN ici, et c'est son invariant 4 qui
+   *   l'exige — invariant réexaminé deux fois, maintenu deux fois, et que la mesure a fini
+   *   par confirmer. Deux de ses tests l'épinglent sur les sorties réelles.
    */
   structuredContent?: Record<string, unknown>;
 }

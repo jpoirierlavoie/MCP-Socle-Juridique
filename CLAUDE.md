@@ -12,10 +12,17 @@ ici.
 
 Ne montent jamais ici : l'analyseur de citations, les tables du Québec, le pipeline EPUB,
 les descripteurs d'outils, `INSTRUCTIONS`, `SERVER_INFO`, `callTool`, `catalogue.json`,
-les gabarits de rendu du domaine.
+les gabarits de rendu du domaine, **la sortie structurée et les mises en garde**.
 
-Montent ici : le protocole, l'identité, la gouverne, le journal, la sortie structurée, la
-page. Voir `src/*/LISEZ-MOI.md` pour le détail par répertoire et par marche.
+Montent ici : **l'identité, et le transport MCP qui la porte** — rien d'autre. Deux
+répertoires, `identite/` et `protocole/`. Voir leurs `LISEZ-MOI.md`.
+
+⚠ LA PORTÉE A ÉTÉ RESSERRÉE LE 2026-09-17, et le motif vaut d'être retenu. Le socle avait
+  six responsabilités déclarées et quatre répertoires vides tenant lieu d'intentions. La
+  sortie structurée en est sortie sur MESURE : ~7 700 jetons par session pour un contrat
+  que personne ne lisait (S5, abandonnée). Le besoin d'origine était un intergiciel
+  d'authentification. Une responsabilité ne monte ici qu'une fois qu'un besoin MESURÉ
+  l'exige — pas parce qu'une spécification l'a écrite.
 
 ## Propagation
 

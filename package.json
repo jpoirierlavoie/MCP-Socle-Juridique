@@ -1,15 +1,14 @@
 {
   "name": "@poirierlavoie/socle-juridique",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
-  "description": "Socle commun des connecteurs juridiques — protocole MCP, identité, gouverne, journal, sortie structurée. Dépendance de DÉVELOPPEMENT, empaquetée au déploiement : jamais une dépendance d'exécution (S2).",
+  "description": "Socle commun des connecteurs juridiques — AUTHENTIFICATION et le transport MCP qui la porte. Dépendance de DÉVELOPPEMENT, empaquetée au déploiement : jamais une dépendance d'exécution (S2).",
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./protocole/*": "./src/protocole/*.ts",
-    "./identite/*": "./src/identite/*.ts",
-    "./sortie/*": "./src/sortie/*.ts"
+    "./identite/*": "./src/identite/*.ts"
   },
   "types": "./src/index.ts",
   "files": [
